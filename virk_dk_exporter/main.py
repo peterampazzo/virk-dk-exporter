@@ -1,10 +1,11 @@
-from dataclasses import dataclass
 from elasticsearch6 import Elasticsearch
 from pyhocon import ConfigFactory, ConfigTree
 import logging
 import sys
 import json
 from typing import List, Dict, Any
+import pandas as pd
+import argparse
 
 logging.basicConfig(
     level=logging.getLevelName("INFO"),
@@ -14,38 +15,40 @@ logging.basicConfig(
 )
 
 
-def process_hits(hits):
-    for item in hits:
-        logging.debug(json.dumps(item, indent=2))
+# def process_hits(hits):
+#     for item in hits:
+#         logging.debug(json.dumps(item, indent=2))
 
 
 def search_by_cvr(cvr: str) -> List[Dict[str, Any]]:
-    r = client.search(
+    res = client.search(
         index="cvr-permanent", body={"query": {"term": {"Vrvirksomhed.cvrNummer": cvr}}}
     )
-    process_hits(r["hits"]["hits"])
-    return r["hits"]["hits"]
+    return res["hits"]["hits"]
 
 
-def query_with_scroll(timeout=1000, index="cvr-permanent", doc_type="type", size=1000):
+def query_with_scroll(
+    field,
+    value,
+    timeout=1000,
+    index="cvr-permanent",
+    doc_type="type",
+    size=1000,
+    scroll="5m",
+):
     data = []
     count = 0
     body = {
-        # "_source": [
-        #     "Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn",
-        #     "Vrvirksomhed.virksomhedMetadata.nyesteBeliggenhedsadresse.landekode",
-        # ],
         "query": {
             "query_string": {
-                "default_field": "Vrvirksomhed.virksomhedMetadata.nyesteBeliggenhedsadresse.kommune.kommuneKode",
-                "query": 169,
+                "default_field": field,
+                "query": value,
             }
         },
     }
-    results = client.search(index=index, scroll="5m", size=size, body=body)
+    results = client.search(index=index, scroll=scroll, size=size, body=body)
     sid = results["_scroll_id"]
     scroll_size = len(results["hits"]["hits"])
-    # print(results["hits"]["hits"])
 
     while scroll_size > 0:
         logging.info(f"Page: {count}")
@@ -54,7 +57,7 @@ def query_with_scroll(timeout=1000, index="cvr-permanent", doc_type="type", size
         # Before scroll, process current batch of hits
         # process_hits(data["hits"]["hits"])
 
-        results = client.scroll(scroll_id=sid, scroll="5m")
+        results = client.scroll(scroll_id=sid, scroll=scroll)
 
         # Update the scroll ID
         sid = results["_scroll_id"]
@@ -62,9 +65,8 @@ def query_with_scroll(timeout=1000, index="cvr-permanent", doc_type="type", size
         # Get the number of results that returned in the last scroll
         scroll_size = len(results["hits"]["hits"])
         count += 1
-    
-    with open('json_data.json', 'w') as outfile:
-        json.dump(data, outfile)
+
+    return data
 
 
 def conn(connection: ConfigTree) -> Elasticsearch:
@@ -85,6 +87,20 @@ client = conn(config["connection"])
 
 
 def main():
-    # search_by_cvr("11111112")
-    query_with_scroll()
+    parser = argparse.ArgumentParser(description="Export data from Virk.dk.")
+    parser.add_argument(
+        "profile", metavar="profile", type=str, help="an integer for the accumulator"
+    )
+    parser.add_argument(
+        "value", metavar="value", type=str, help="an integer for the accumulator"
+    )
+    args = parser.parse_args()
 
+    if args.profile == "cvr":
+        res = search_by_cvr(args.value)
+    elif args.profile == "municipality":
+        res = query_with_scroll(
+            field="Vrvirksomhed.virksomhedMetadata.nyesteBeliggenhedsadresse.kommune.kommuneKode",
+            value=args.value,
+        )
+    pd.DataFrame(res).to_csv("test.csv", index=False)

@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "virk-dk-exporter"
+version = "0.1.0"
+description = "Export programmatically data from Virk.dk Elastic API"
+authors = ["Pietro Rampazzo <pietro@rampazzo.co>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+elasticsearch6 = "^6.8.2"
+pyhocon = "^0.3.59"
+pandas = "^1.4.2"
+
+[tool.poetry.dev-dependencies]
+tox = "^3.25.0"
+black = "^22.3.0"
+isort = "^5.10.1"
+mypy = "^0.950"
+
+
+[tool.poetry.scripts]
+exporter = "virk_dk_exporter.main:main"
+
+[build-system]
+requires = ["poetry>=1.0.0"]
+build-backend = "poetry.masonry.api"

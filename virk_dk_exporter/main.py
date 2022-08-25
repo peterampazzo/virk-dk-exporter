@@ -2,7 +2,6 @@ from elasticsearch6 import Elasticsearch
 from pyhocon import ConfigFactory, ConfigTree
 import logging
 import sys
-import json
 from typing import List, Dict, Any
 import pandas as pd
 import argparse
@@ -13,11 +12,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
     stream=sys.stdout,
 )
-
-
-# def process_hits(hits):
-#     for item in hits:
-#         logging.debug(json.dumps(item, indent=2))
 
 
 def search_by_cvr(cvr: str) -> List[Dict[str, Any]]:
@@ -103,4 +97,4 @@ def main():
             field="Vrvirksomhed.virksomhedMetadata.nyesteBeliggenhedsadresse.kommune.kommuneKode",
             value=args.value,
         )
-    pd.DataFrame(res).to_csv("test.csv", index=False)
+        pd.DataFrame(res).to_csv(f"data/municipality-{args.value}.csv", index=False)

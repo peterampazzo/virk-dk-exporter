@@ -1,27 +1,12 @@
 # virk-dk-exporter
 
-https://www.dst.dk/da/Statistik/dokumentation/nomenklaturer/nuts#
+This project uses `poetry`, run `poetry install` to set up your enviroment.
 
+To query all the CVR in a municipality:
 
 ```
-nyesteErstMaanedsbeskaeftigelse
+ELASTIC_USERNAME=<your_username> ELASTIC_KEY=<your_apikey> poetry run exporter municipality <kommune_id>
 ```
 
-```json
-{
-    "took": 25,
-    "timed_out": false,
-    "_shards": {
-        "total": 6,
-        "successful": 6,
-        "skipped": 0,
-        "failed": 0
-    },
-    "hits": {
-        "total": 1,
-        "max_score": 12.102404,
-        "hits": [
-        ]
-    }
-}
-```
+All the returned data will be saved as CSV file in the `data/` folder.
+Muncipality codes can be found [here](https://www.dst.dk/da/Statistik/dokumentation/nomenklaturer/nuts)
